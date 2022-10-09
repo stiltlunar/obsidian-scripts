@@ -1,17 +1,12 @@
 class tifa { 
   // * UNIVERSAL
   // uses dv to render content
-  render(...args) {
-    const [content, dv] = args
+  render(string, dv) {
     try {
-      if (!content) {
+      if (!string) {
         dv.paragraph('> [!info] Nothing to see here')
-      } else if ( Array.isArray(content) ) {
-        content.forEach(string => {
-          dv.paragraph(string)
-        })
       } else {
-        dv.paragraph(content)
+        dv.paragraph(string)
       }
     } catch(error) {
       dv.paragraph('> [!bug] Rendering Problem \n' + error + '\n **SEE CONSOLE FOR MORE INFO**')
@@ -20,8 +15,7 @@ class tifa {
   }
   
   // gets all data for current file provided by the dv object from dataview plugin
-  getNoteData(...args) {
-    const [dv] = args
+  getNoteData(dv) {
     const noteData = dv.current()
     return noteData
   }
@@ -29,9 +23,8 @@ class tifa {
   // * CALLOUTS
   // TODO: General Callouts
   // TODO: Project Callouts
-  renderCallouts(...args) {
+  renderCallouts(dv) {
     try {
-      const [dv] = args
       const noteData = this.getNoteData(dv)
       const content = this.getNoteHealth(noteData)
       this.render(content, dv)
@@ -91,11 +84,46 @@ class tifa {
         calloutData.message = 'Note Needs Work'
       }
     }
-    console.log(calloutData.content)
   
     return this.stringifyCallout(calloutData)
   }
 
   // * TASK HANDLER
   // TODO: handle queries and display of tasks
+
+  // * BIBLIOGRAPHY
+  // TODO: handle creating bibliography for topic based on references to book notes
+  renderBibliography(dv) {
+    const noteData = this.getNoteData(dv)
+    const references = this.formatReferences(this.getBookReferences(noteData, dv), dv)
+    const bibliography = `## Bibliography\n${references.join('\n')}`
+    this.render(bibliography, dv)
+  }
+
+  getBookReferences(noteData, dv) {
+    const outlinks = noteData.file.outlinks
+    let bookReferences = []
+    outlinks.forEach(link => {      
+      if (dv.page(link).type === '📖') {
+        bookReferences.push(link)
+      }
+    })
+    return bookReferences
+  }
+
+  formatReferences(references, dv) {
+    const formattedReferences = []
+    
+    references.forEach(reference => {
+      const info = dv.page(reference)
+      if(info.format === 'Book') {
+        formattedReferences.push(`${info.author}. *${info.title}*. ${info.publishLocation}: ${info.publisher}, ${info.publishDate}. [[${info.file.name} | ⬈]]`)
+      }
+      if(info.format === 'Journal Article') {
+        formattedReferences.push(`${info.author}. "*${info.title}*." ${info.publisher} ${info.issue} (${info.publishDate}): ${info.pages} [[${info.file.name} | ⬈]]`)
+      }
+    })
+    return formattedReferences
+  }
+
 }
