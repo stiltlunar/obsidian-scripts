@@ -1,43 +1,25 @@
 class tifa { 
-  // * UNIVERSAL
-  // uses dv to render content
-  render(string, dv) {
-    try {
-      if (!string) {
-        dv.paragraph('> [!info] Nothing to see here')
-      } else {
-        dv.paragraph(string)
-      }
-    } catch(error) {
-      dv.paragraph('> [!bug] Rendering Problem \n' + error + '\n **SEE CONSOLE FOR MORE INFO**')
-      console.log(error)
-    }
-  }
-  
-  // gets all data for current file provided by the dv object from dataview plugin
-  getNoteData(dv) {
-    const noteData = dv.current()
-    return noteData
-  }
+  // * GLOBAL
   
   // * CALLOUTS
   // TODO: General Callouts
   // TODO: Project Callouts
   renderCallouts(dv) {
     try {
-      const noteData = this.getNoteData(dv)
-      const content = this.getNoteHealth(noteData)
-      this.render(content, dv)
+      const content = this.getNoteCallouts(dv.current())
+      dv.paragraph(content)
     } catch(error) {
-      this.render(`> [!bug] Problem with getCallouts()\n${error}`, dv)
+      dv.paragraph(`> [!bug] Problem with getCallouts()\n${error}`)
     }
   }
 
   stringifyCallout(callout) {    
-    if(callout.content.length == 0) {
-      return
+    let content
+    if(typeof callout.content == 'string') {
+      content = callout.content
+    } else {
+      content = callout.content.join('\n')
     }
-    let content = callout.content.join('\n')
     if (callout.message) {
       let calloutString = `> [!${callout.type}] ${callout.message}\n${content}`
       return calloutString
@@ -46,46 +28,53 @@ class tifa {
     }
   }
 
+  createCallout(type, message, content = []) {
+    return {
+      type,
+      message,
+      content
+    }
+  }
+
   // ?offload note type handling?
   // Note Health (see Style Guide for health guidelines)
-  getNoteHealth(noteData) {
+  getNoteCallouts(noteData) {
     const note = noteData.file
-    const noteType = noteData.type
-    
-    const calloutData = {
-      type: '',
-      message: '',
-      content: []
+
+    // * General Notes
+    if (noteData.type === '🗒') {
+      const content = []
+      // * Empty Note
+      if (note.size < 500) {
+        return this.stringifyCallout(this.createCallout('missing', 'Looks Like Nothing is Here', ['Try adding content to this note']))
+      }
+      
+      // * Note Health
+      if (note.size < 4000) {
+        content.push('Needs more [[Content Length | content]]')
+      }
+      if (note.outlinks.length <= 5) {
+        content.push('Needs more [[Outgoing Links | outgoing links]]')
+      }
+  
+      // * No Errors Check
+      if (content.length === 0) {
+        return this.stringifyCallout(this.createCallout('success', 'Healthy Note'))
+      }
+
+      return this.stringifyCallout(this.createCallout('warning', 'Note Needs Work', content))
     }
 
-    if (noteType === '🗒') {
-      // Length Check
-      if (note.size < 500) {
-        calloutData.type = 'missing'
-        calloutData.message = 'Looks Like Nothing is Here'
-        calloutData.content.push('Try adding content to this note')
-        return this.stringifyCallout(calloutData)
+    // * Book Notes
+    if (noteData.type === '📖') {
+      const content = []
+      // * Book Metadata
+      if (!noteData.format) {
+        return this.stringifyCallout(this.createCallout('failure', 'Book Notes Require a Format', ['']))
       }
-      
-      if (note.size < 4000) {
-        calloutData.content.push('Needs more [[Content Length | content]]')
-      }
-      
-      // Internal Linking Check
-      if (note.outlinks.length <= 5) {
-        calloutData.content.push('Needs more [[Outgoing Links | outgoing links]]')
-      }
-  
-      if (calloutData.content.length === 0) {
-        calloutData.type = 'success'
-        calloutData.message = 'Healthy Note'
-      } else {
-        calloutData.type = 'warning'
-        calloutData.message = 'Note Needs Work'
-      }
+
     }
-  
-    return this.stringifyCallout(calloutData)
+
   }
 
   // * TASK HANDLER
@@ -94,10 +83,14 @@ class tifa {
   // * BIBLIOGRAPHY
   // TODO: handle creating bibliography for topic based on references to book notes
   renderBibliography(dv) {
-    const noteData = this.getNoteData(dv)
-    const references = this.formatReferences(this.getBookReferences(noteData, dv), dv)
-    const bibliography = `## Bibliography\n${references.join('\n')}`
-    this.render(bibliography, dv)
+    try {
+      const references = this.formatReferences(this.getBookReferences(dv.current(), dv), dv)
+      const bibliography = `## Bibliography\n${references.join('\n')}`
+      dv.paragraph(bibliography)
+    } catch(error) {
+      dv.paragraph(`> [!bug] Problem with renderBibliography()\n${error}`)
+    }
+    
   }
 
   getBookReferences(noteData, dv) {
