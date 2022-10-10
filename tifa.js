@@ -1,9 +1,10 @@
 class tifa { 
+  // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN !!!
+  // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD !!!
   // * GLOBAL
   
   // * CALLOUTS
-  // TODO: General Callouts
-  // TODO: Project Callouts
+  // TODO: If type is not in 'NoteTypes' then warning with missing notetype
   renderCallouts(dv) {
     try {
       const content = this.getNoteCallouts(dv.current())
@@ -13,31 +14,26 @@ class tifa {
     }
   }
 
-  stringifyCallout(callout) {    
-    let content
-    if(typeof callout.content == 'string') {
-      content = callout.content
-    } else {
-      content = callout.content.join('\n')
+  createCallout(type, message, content) {
+    if (!type) {
+      throw new Error('createCallout() called without type')
     }
-    if (callout.message) {
-      let calloutString = `> [!${callout.type}] ${callout.message}\n${content}`
-      return calloutString
-    } else {
-      return `> [!${callout.type}]\n${content}`
+    let calloutString = `> [!${type}]`
+    if (message) {
+      calloutString += ` ${message}`
     }
+    if (content) {
+      if (typeof content === 'string') {
+        calloutString += `\n${content}`
+      } else {
+        const joinedContent = content.join('\n')
+        calloutString += `\n${joinedContent}`
+      }
+    }
+
+    return calloutString
   }
 
-  createCallout(type, message, content = []) {
-    return {
-      type,
-      message,
-      content
-    }
-  }
-
-  // ?offload note type handling?
-  // Note Health (see Style Guide for health guidelines)
   getNoteCallouts(noteData) {
     const note = noteData.file
 
@@ -46,7 +42,7 @@ class tifa {
       const content = []
       // * Empty Note
       if (note.size < 500) {
-        return this.stringifyCallout(this.createCallout('missing', 'Looks Like Nothing is Here', ['Try adding content to this note']))
+        return this.createCallout('missing', 'Looks Like Nothing is Here', ['Try adding content to this note'])
       }
       
       // * Note Health
@@ -59,10 +55,10 @@ class tifa {
   
       // * No Errors Check
       if (content.length === 0) {
-        return this.stringifyCallout(this.createCallout('success', 'Healthy Note'))
+        return this.createCallout('success', 'Healthy Note')
       }
 
-      return this.stringifyCallout(this.createCallout('warning', 'Note Needs Work', content))
+      return this.createCallout('warning', 'Note Needs Work', content)
     }
 
     // * Book Notes
@@ -70,14 +66,15 @@ class tifa {
       const content = []
       // * Book Metadata
       if (!noteData.format) {
-        return this.stringifyCallout(this.createCallout('failure', 'Book Notes Require a Format', ['']))
+        return this.createCallout('failure', 'Book Notes Require a Format', [''])
       }
 
     }
 
+    return this.createCallout('info', 'Nothing to See Here')
   }
 
-  // * TASK HANDLER
+  // * TASKS
   // TODO: handle queries and display of tasks
 
   // * BIBLIOGRAPHY
