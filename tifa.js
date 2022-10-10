@@ -1,20 +1,16 @@
 class tifa { 
+  
+  // TODO: Incorporate this functionality to read json for writing callout for types
+  async getContent(page, dv) {
+    let content = await dv.io.load(page.file.path)
+    return content
+  }
+  
   // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN !!!
   // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD !!!
   // * GLOBAL
-  
-  // * CALLOUTS
-  // TODO: If type is not in 'NoteTypes' then warning with missing notetype
-  renderCallouts(dv) {
-    try {
-      const content = this.getNoteCallouts(dv.current())
-      dv.paragraph(content)
-    } catch(error) {
-      dv.paragraph(`> [!bug] Problem with getCallouts()\n${error}`)
-    }
-  }
-
   createCallout(type, message, content) {
+    // TODO: accomodate ordered and unordered lists
     if (!type) {
       throw new Error('createCallout() called without type')
     }
@@ -30,11 +26,26 @@ class tifa {
         calloutString += `\n${joinedContent}`
       }
     }
-
+  
     return calloutString
   }
+  
+  // * CALLOUTS
+  // TODO: If type is not in 'NoteTypes' then warning with missing notetype
+  async renderCallouts(dv) {
+    try {
+      const content = this.getNoteCallouts(dv.current(), dv)
+      const readTime = await this.getReadTime(dv)
+      console.log(content);
+      dv.paragraph(readTime)
+      dv.paragraph(content)
+    } catch(error) {
+      dv.paragraph(`> [!bug] Problem with getCallouts()\n${error}`)
+    }
+  }
 
-  getNoteCallouts(noteData) {
+
+  getNoteCallouts(noteData, dv) {
     const note = noteData.file
 
     // * General Notes
@@ -52,7 +63,9 @@ class tifa {
       if (note.outlinks.length <= 5) {
         content.push('Needs more [[Outgoing Links | outgoing links]]')
       }
-  
+
+      // TODO: Add a check for a note that is too long => indicates that it needs to be multiple notes
+
       // * No Errors Check
       if (content.length === 0) {
         return this.createCallout('success', 'Healthy Note')
@@ -66,12 +79,12 @@ class tifa {
       const content = []
       // * Book Metadata
       if (!noteData.format) {
-        return this.createCallout('failure', 'Book Notes Require a Format', [''])
+        return this.createCallout('failure', 'Book Notes Require a Format', ['Optional formats include: Book, Journal Article'])
       }
 
     }
 
-    return this.createCallout('info', 'Nothing to See Here')
+    return ''
   }
 
   // * TASKS
@@ -114,6 +127,43 @@ class tifa {
       }
     })
     return formattedReferences
+  }
+
+  // * ESTIMATED READ TIME
+  async getReadTime(dv) {
+    const content = await this.getContent(dv.current(), dv)
+    const wordCount = content.split(' ').length
+    const readTime = Math.round(wordCount/200)
+    if (readTime < 1) {
+      return '> [!info] Read Time: < 1 min'
+    } else if (readTime < 60) {
+      if (readTime === 1) {
+        return `> [!info] Read Time: ${readTime} min`
+      } else {
+        return `> [!info] Read Time: ${readTime} mins`
+      }
+    } else if (readTime >= 60) {
+      let hours = Math.floor(readTime / 60)
+      let minutes = readTime % 60
+      
+      if (hours === 1) {
+        if (minutes === 0) {
+          return `> [!info] Read Time: ${hours} hr`
+        } else if (minutes === 1) {
+          return `> [!info] Read Time: ${hours} hr, ${minutes} min`
+        } else {
+          return `> [!info] Read Time: ${hours} hr, ${minutes} mins`
+        }
+      } else {
+        if (minutes === 0) {
+          return `Read Time: ${hours} hrs`
+        } else if (minutes === 1) {
+          return `> [!info] Read Time: ${hours} hrs, ${minutes} min`
+        } else {
+          return `> [!info] Read Time: ${hours} hrs, ${minutes} mins`
+        }
+      }
+    }
   }
 
 }
