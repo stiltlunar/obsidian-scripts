@@ -39,7 +39,6 @@ class tifa {
         try {
             const content = this.getNoteCallouts(dv.current(), dv);
             const readTime = await this.getReadTime(dv);
-            console.log(content);
             dv.paragraph(readTime);
             dv.paragraph(content);
         }
@@ -54,11 +53,50 @@ class tifa {
             dv.paragraph(this.createCallout('missing', `Missing [[Callout Schema]] | [[${note.type}@callouts |Add One]]`));
             return;
         }
+        let content = [];
         for (let key in schema) {
-            if (Array.isArray(key) && key !== null) {
-                key.forEach(rule => {
+            if (Array.isArray(schema[key]) && schema[key] !== null) {
+                // for things like file property on a note
+                schema[key].forEach(rule => {
+                    const passed = this.compareRule(note[key], rule);
+                    if (!passed) {
+                        rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content);
+                    }
                 });
             }
+            else {
+                // for all other properties on notes
+                const passed = this.compareRule(note, key);
+            }
+        }
+    }
+    compareRule(note, rule) {
+        const property = rule.property;
+        const condition = rule.condition;
+        if (condition[0] === ' ') {
+            let operator = condition[0];
+            let value = condition.slice(-(condition.length - 2));
+            if (operator === '<') {
+                return note[property] > value;
+            }
+            else if (operator === '>') {
+                return note[property] < value;
+            }
+            else if (operator === '<=') {
+                return note[property] >= value;
+            }
+            else if (operator === '>=') {
+                return note[property] <= value;
+            }
+            else if (operator === '!') {
+                return note[property] == value;
+            }
+            else if (operator === '=') {
+                return note[property] !== value;
+            }
+        }
+        if (typeof condition === 'string') {
+            return note[property] === condition;
         }
     }
     getNoteCallouts(noteData, dv) {

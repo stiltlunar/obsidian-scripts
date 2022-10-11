@@ -4,7 +4,6 @@
   "description": "Using the CustomJS plugin, this folder contains JavaScript files that handle custom code. Obsidian will not show the scripts in this folder because they are .js file extension types. **Please use a text editor**",
   "main": "tifa.js",
   "scripts": {
-    "test": "mocha",
     "dev": "tsc --watch",
     "build": "tsc"
   },
@@ -20,10 +19,6 @@
   },
   "homepage": "https://github.com/stiltlunar/obsidian-scripts#readme",
   "devDependencies": {
-    "@types/chai": "^4.3.3",
-    "@types/mocha": "^10.0.0",
-    "chai": "^4.3.6",
-    "mocha": "^10.0.0",
     "typescript": "^4.8.4"
   }
 }
