@@ -1,9 +1,14 @@
 class tifa { 
   
   // TODO: Incorporate this functionality to read json for writing callout for types
-  async getContent(page, dv) {
-    let content = await dv.io.load(page.file.path)
-    return content
+  async getJSON(page, dv) {
+    try {
+      let content = await dv.io.load(page.file.path)
+      const json = JSON.parse(content)
+      return json
+    } catch(error) {
+      return false
+    }
   }
   
   // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN !!!
@@ -45,7 +50,20 @@ class tifa {
   }
 
   async betterNoteCallouts(dv) {
-    
+    const note = dv.current()
+    const schema = await this.getJSON(dv.page(note.type + '@callouts'), dv)
+    if (!schema) {
+      dv.paragraph(this.createCallout('missing', `Missing [[Callout Schema]] | [[${note.type}@callouts |Add One]]`))
+      return
+    }
+
+    for (let key in schema) {
+      if (Array.isArray(key) && key !== null) {
+        key.forEach(rule => {
+          
+        })
+      }
+    }
   }
 
 
@@ -135,7 +153,7 @@ class tifa {
 
   // * ESTIMATED READ TIME
   async getReadTime(dv) {
-    const content = await this.getContent(dv.current(), dv)
+    const content = await dv.io.load(dv.current().file.path)
     const wordCount = content.split(' ').length
     const readTime = Math.round(wordCount/200)
     if (readTime < 1) {
