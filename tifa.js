@@ -109,7 +109,7 @@ class tifa {
             return;
         }
         if (content.length !== 0) {
-            dv.paragraph(this.createCallout('warning', 'Note Needs Work', content));
+            dv.paragraph(this.createCallout('warning', 'Needs Work', content));
         }
     }
     compareRule(note, rule) {
