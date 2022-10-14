@@ -4,7 +4,10 @@ class tifa {
   async getJSON(page, dv) {
     try {
       let content = await dv.io.load(page.file.path)
+      content = content.trim()
+      content = content.slice(3, -3)      
       const json = JSON.parse(content)
+      
       return json
     } catch(error) {
       return false
@@ -15,132 +18,142 @@ class tifa {
   // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD !!!
   // * GLOBAL
   createCallout(type, message, content?) {
-    // TODO: accomodate ordered and unordered lists
-    if (!type) {
-      throw new Error('createCallout() called without type')
-    }
-    let calloutString = `> [!${type}]`
-    if (message) {
-      calloutString += ` ${message}`
-    }
-    if (content) {
-      if (typeof content === 'string') {
-        calloutString += `\n${content}`
-      } else {
-        const joinedContent = content.join('\n')
-        calloutString += `\n${joinedContent}`
+    try {
+      // TODO: accomodate ordered and unordered lists
+      if (!type) {
+        throw new Error('createCallout() called without type')
       }
+      let calloutString = `> [!${type}]`
+      if (message) {
+        calloutString += ` ${message}`
+      }
+      if (content) {
+        if (typeof content === 'string') {
+          calloutString += `\n${content}`
+        } else {
+          const joinedContent = content.join('\n')
+          calloutString += `\n${joinedContent}`
+        }
+      }
+      
+      return calloutString
+    } catch(error) {
+      return `> [!bug] Problem with createCallout()\n ${error}`
     }
-  
-    return calloutString
   }
   
+  getWordCount(content) {
+    const count = content.split(' ').length
+    return count
+  }
+
+  async addImplicitProps(note, dv) {
+    const newNote = note
+    newNote.content = await dv.io.load(newNote.file.path)
+    newNote.wordCount = this.getWordCount(newNote.content)
+    return newNote
+  }
+
   // * CALLOUTS
   // TODO: If type is not in 'NoteTypes' then warning with missing notetype
   async renderCallouts(dv) {
     try {
-      const content = this.getNoteCallouts(dv.current(), dv)
-      const readTime = await this.getReadTime(dv)
+      const note = await this.addImplicitProps(dv.current(), dv)
+      const readTime = await this.getReadTime(note, dv)
       dv.paragraph(readTime)
-      dv.paragraph(content)
+      await this.getNoteCallouts(note, dv)
     } catch(error) {
       dv.paragraph(`> [!bug] Problem with getCallouts()\n${error}`)
     }
   }
 
-  async betterNoteCallouts(dv) {
-    const note = dv.current()
+  async getNoteCallouts(note, dv) {
+    if(!note.type) {
+      dv.paragraph(this.createCallout('missing', 'Missing Note Type'))
+      return
+    }
+
     const schema = await this.getJSON(dv.page(note.type + '@callouts'), dv)
     if (!schema) {
       dv.paragraph(this.createCallout('missing', `Missing [[Callout Schema]] | [[${note.type}@callouts |Add One]]`))
       return
     }
 
-    let content = []
+    let content: string[] = []
+    let done: boolean = false
 
     for (let key in schema) {
-      
-      if (Array.isArray(schema[key]) && schema[key] !== null) {
+      if (key === 'file') {
         // for things like file property on a note
         schema[key].forEach(rule => {          
           const passed = this.compareRule(note[key], rule)
           if(!passed) {
             rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content)
+            if(rule.result.done) {
+              done = true
+              return
+            }
           }
         })
       } else {
-        // for all other properties on notes
-        const passed = this.compareRule(note, key)
+        schema[key].forEach(rule => {
+          const passed = this.compareRule(note, rule)
+          if(!passed) {
+            rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content)
+            if(rule.result.done) {
+              done = true
+              return
+            }
+          }
+        })
       }
+      if (done) {
+        return
+      }
+    }
+
+    if (done) {
+      return
+    }
+
+    if (content.length !== 0) {
+      dv.paragraph(this.createCallout('warning', 'Note Needs Work', content))
     }
   }
 
   compareRule(note, rule) {
-    const property = rule.property
-    const condition = rule.condition
-    if (condition[0] === ' ') {
-      let operator = condition[0]
-      let value = condition.slice(-(condition.length - 2))
-      if (operator === '<') {
-        return note[property] > value
-      } else if (operator === '>') {
-        return note[property] < value
-      } else if (operator === '<=') {
-        return note[property] >= value
-      } else if (operator === '>=') {
-        return note[property] <= value
-      } else if (operator === '!') {
-        return note[property] == value
-      } else if (operator === '=') {
-        return note[property] !== value
-      }
-    }
-
-    if (typeof condition === 'string') {
-      return note[property] === condition
-    }
-  }
-
-  getNoteCallouts(noteData, dv) {
-    const note = noteData.file
-
-    // * General Notes
-    if (noteData.type === '🗒') {
-      const content = []
-      // * Empty Note
-      if (note.size < 500) {
-        return this.createCallout('missing', 'Looks Like Nothing is Here', ['Try adding content to this note'])
-      }
+    try {
+      const property = rule.property
+      const condition = rule.condition
       
-      // * Note Health
-      if (note.size < 4000) {
-        content.push('Needs more [[Content Length | content]]')
-      }
-      if (note.outlinks.length <= 5) {
-        content.push('Needs more [[Outgoing Links | outgoing links]]')
+      if(!note[property]) {
+        throw new Error(`${property} property does not exist`)
       }
 
-      // TODO: Add a check for a note that is too long => indicates that it needs to be multiple notes
-
-      // * No Errors Check
-      if (content.length === 0) {
-        return this.createCallout('success', 'Healthy Note')
+      if (condition[1] === ' ') {
+        let operator = condition[0]
+        let value = condition.slice(-(condition.length - 2))
+        if (operator === '<') {
+          return note[property] > value
+        } else if (operator === '>') {
+          return note[property] < value
+        } else if (operator === '<=') {
+          return note[property] >= value
+        } else if (operator === '>=') {
+          return note[property] <= value
+        } else if (operator === '!') {
+          return note[property] == value
+        } else if (operator === '=') {
+          return note[property] !== value
+        }
       }
-
-      return this.createCallout('warning', 'Note Needs Work', content)
+  
+      if (typeof condition === 'string') {
+        return note[property] === condition
+      }
+    } catch(error) {
+      return `> [!bug] Problem with compareRule()\n${error}`
     }
-
-    // * Book Notes
-    if (noteData.type === '📖') {
-      const content = []
-      // * Book Metadata
-      if (!noteData.format) {
-        return this.createCallout('failure', 'Book Notes Require a Format', ['Optional formats include: Book, Journal Article'])
-      }
-
-    }
-
-    return ''
   }
 
   // * TASKS
@@ -186,40 +199,30 @@ class tifa {
   }
 
   // * ESTIMATED READ TIME
-  async getReadTime(dv) {
-    const content = await dv.io.load(dv.current().file.path)
-    const wordCount = content.split(' ').length
+  async getReadTime(note, dv) {
+    const content = await dv.io.load(note.file.path)
+    const wordCount = this.getWordCount(content)
     const readTime = Math.round(wordCount/200)
-    if (readTime < 1) {
-      return '> [!info] Read Time: < 1 min'
-    } else if (readTime < 60) {
-      if (readTime === 1) {
-        return `> [!info] Read Time: ${readTime} min`
-      } else {
-        return `> [!info] Read Time: ${readTime} mins`
-      }
-    } else if (readTime >= 60) {
-      let hours = Math.floor(readTime / 60)
-      let minutes = readTime % 60
-      
-      if (hours === 1) {
-        if (minutes === 0) {
-          return `> [!info] Read Time: ${hours} hr`
-        } else if (minutes === 1) {
-          return `> [!info] Read Time: ${hours} hr, ${minutes} min`
-        } else {
-          return `> [!info] Read Time: ${hours} hr, ${minutes} mins`
-        }
-      } else {
-        if (minutes === 0) {
-          return `Read Time: ${hours} hrs`
-        } else if (minutes === 1) {
-          return `> [!info] Read Time: ${hours} hrs, ${minutes} min`
-        } else {
-          return `> [!info] Read Time: ${hours} hrs, ${minutes} mins`
-        }
-      }
-    }
-  }
+    let hourText: string = ''
+    let minText: string = ''
+    let hours: string|number = ''
+    let mins: string|number = ''
 
+    // set mins and hours
+    if (readTime > 60) {
+      hours = Math.floor(readTime / 60)
+      mins = readTime % 60
+    } else {
+      mins = readTime
+    }
+
+    // set hour text
+    if (hours) {
+      hours === 1 ? hourText = 'hr' : hourText = 'hrs'
+    }
+    // set min text
+    mins === 1 ? minText = 'min' : minText = 'mins'
+
+    return `>[!info] READ TIME: ${hours} ${hourText} ${mins} ${minText}`
+  }
 }
