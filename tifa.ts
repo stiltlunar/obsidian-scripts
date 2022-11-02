@@ -17,7 +17,7 @@ class tifa {
   // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN !!!
   // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD !!!
   // * GLOBAL
-  createCallout(type, message, content?) {
+  createCallout(type, message, content?: string | string[]) {
     try {
       // TODO: accomodate ordered and unordered lists
       if (!type) {
@@ -31,8 +31,8 @@ class tifa {
         if (typeof content === 'string') {
           calloutString += `\n${content}`
         } else {
-          const joinedContent = content.join('\n')
-          calloutString += `\n${joinedContent}`
+          const joinedContent = content.join('\n > - ')
+          calloutString += `\n > - ${joinedContent}`
         }
       }
       
@@ -130,6 +130,7 @@ class tifa {
 
   compareRule(note, rule) {
     try {
+      // TODO: Handle more types than numbers
       const property = rule.property
       const condition = rule.condition
       

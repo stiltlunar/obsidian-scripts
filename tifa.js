@@ -30,8 +30,8 @@ class tifa {
                     calloutString += `\n${content}`;
                 }
                 else {
-                    const joinedContent = content.join('\n');
-                    calloutString += `\n${joinedContent}`;
+                    const joinedContent = content.join('\n > - ');
+                    calloutString += `\n > - ${joinedContent}`;
                 }
             }
             return calloutString;
@@ -120,6 +120,7 @@ class tifa {
     }
     compareRule(note, rule) {
         try {
+            // TODO: Handle more types than numbers
             const property = rule.property;
             const condition = rule.condition;
             if (!note[property]) {
