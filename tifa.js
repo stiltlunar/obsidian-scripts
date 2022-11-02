@@ -51,65 +51,71 @@ class tifa {
         return newNote;
     }
     // * CALLOUTS
-    // TODO: If type is not in 'NoteTypes' then warning with missing notetype
     async renderCallouts(dv) {
         try {
             const note = await this.addImplicitProps(dv.current(), dv);
             const readTime = await this.getReadTime(note, dv);
-            dv.paragraph(readTime);
+            if (readTime) {
+                dv.span(readTime);
+            }
             await this.getNoteCallouts(note, dv);
         }
         catch (error) {
-            dv.paragraph(`> [!bug] Problem with getCallouts()\n${error}`);
+            dv.span(`> [!bug] Problem with renderCallouts()\n${error}`);
         }
     }
     async getNoteCallouts(note, dv) {
-        if (!note.type) {
-            dv.paragraph(this.createCallout('missing', 'Missing Note Type'));
-            return;
-        }
-        const schema = await this.getJSON(dv.page(note.type + '@callouts'), dv);
-        if (!schema) {
-            dv.paragraph(this.createCallout('missing', `Missing [[Callout Schema]] | [[${note.type}@callouts |Add One]]`));
-            return;
-        }
-        let content = [];
-        let done = false;
-        for (let key in schema) {
-            if (key === 'file') {
-                // for things like file property on a note
-                schema[key].forEach(rule => {
-                    const passed = this.compareRule(note[key], rule);
-                    if (!passed) {
-                        rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content);
-                        if (rule.result.done) {
-                            done = true;
-                            return;
-                        }
-                    }
-                });
+        try {
+            if (!note.type) {
+                dv.span(this.createCallout('missing', 'Missing Note Type'));
+                return;
             }
-            else {
-                schema[key].forEach(rule => {
-                    const passed = this.compareRule(note, rule);
-                    if (!passed) {
-                        rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content);
-                        if (rule.result.done) {
-                            done = true;
-                            return;
+            const schema = await this.getJSON(dv.page(note.type + '@callouts'), dv);
+            if (!schema) {
+                dv.span(this.createCallout('missing', `Missing [[Callout Schema]] | [[${note.type}@callouts |Add One]]`));
+                return;
+            }
+            let content = [];
+            let done = false;
+            for (let key in schema) {
+                if (key === 'file') {
+                    // for things like file property on a note
+                    schema[key].forEach(rule => {
+                        const passed = this.compareRule(note[key], rule);
+                        if (!passed) {
+                            rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content);
+                            if (rule.result.done) {
+                                done = true;
+                                return;
+                            }
                         }
-                    }
-                });
+                    });
+                }
+                else {
+                    schema[key].forEach(rule => {
+                        const passed = this.compareRule(note, rule);
+                        if (!passed) {
+                            rule.result.type ? dv.paragraph(this.createCallout(rule.result.type, rule.result.message, rule.result.content)) : content.push(rule.result.content);
+                            if (rule.result.done) {
+                                done = true;
+                                return;
+                            }
+                        }
+                    });
+                }
+                if (done) {
+                    return;
+                }
             }
             if (done) {
                 return;
             }
+            if (content.length !== 0) {
+                dv.paragraph(this.createCallout('warning', 'Needs Work', content));
+            }
         }
-        if (done) {
-            return;
-        }
-        if (content.length !== 0) {
-            dv.paragraph(this.createCallout('warning', 'Needs Work', content));
+        catch (error) {
+            dv.span(`> [!bug] Problem with getNoteCallouts()\n${error}`);
         }
     }
     compareRule(note, rule) {
@@ -188,27 +194,32 @@ class tifa {
     }
     // * ESTIMATED READ TIME
     async getReadTime(note, dv) {
-        const content = await dv.io.load(note.file.path);
-        const wordCount = this.getWordCount(content);
-        const readTime = Math.round(wordCount / 200);
-        let hourText = '';
-        let minText = '';
-        let hours = '';
-        let mins = '';
-        // set mins and hours
-        if (readTime > 60) {
-            hours = Math.floor(readTime / 60);
-            mins = readTime % 60;
+        try {
+            const content = await dv.io.load(note.file.path);
+            const wordCount = this.getWordCount(content);
+            const readTime = Math.round(wordCount / 200);
+            let hourText = '';
+            let minText = '';
+            let hours = '';
+            let mins = '';
+            // set mins and hours
+            if (readTime > 60) {
+                hours = Math.floor(readTime / 60);
+                mins = readTime % 60;
+            }
+            else {
+                mins = readTime;
+            }
+            // set hour text
+            if (hours) {
+                hours === 1 ? hourText = 'hr' : hourText = 'hrs';
+            }
+            // set min text
+            mins === 1 ? minText = 'min' : minText = 'mins';
+            return `>[!info] READ TIME: ${hours} ${hourText} ${mins} ${minText}`;
         }
-        else {
-            mins = readTime;
+        catch (error) {
+            dv.span(`> [!bug] Problem with getReadTime()\n${error}`);
         }
-        // set hour text
-        if (hours) {
-            hours === 1 ? hourText = 'hr' : hourText = 'hrs';
-        }
-        // set min text
-        mins === 1 ? minText = 'min' : minText = 'mins';
-        return `>[!info] READ TIME: ${hours} ${hourText} ${mins} ${minText}`;
     }
 }
