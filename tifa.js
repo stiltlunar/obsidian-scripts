@@ -1,19 +1,7 @@
 class tifa {
-    // TODO: Incorporate this functionality to read json for writing callout for types
-    async getJSON(page, dv) {
-        try {
-            let content = await dv.io.load(page.file.path);
-            content = content.trim();
-            content = content.slice(3, -3);
-            const json = JSON.parse(content);
-            return json;
-        }
-        catch (error) {
-            return false;
-        }
-    }
-    // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN !!!
-    // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD !!!
+    // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN              !!!
+    // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD    !!!
+    // !!! CHANGING A 'render' VARIABLES WILL AFFECT ALL PAGES CALLING THE METHOD !!!
     // * GLOBAL
     createCallout(type, message, content) {
         try {
@@ -37,7 +25,23 @@ class tifa {
             return calloutString;
         }
         catch (error) {
-            return `> [!bug] Problem with createCallout()\n ${error}`;
+            return this.handleError(error, 'createCallout()');
+        }
+    }
+    async getJSON(page, dv) {
+        // TODO: Add better error handling
+        // TODO: I need to know when the function fails
+        // TODO: I need to know when there is no JSON
+        // TODO: I need to know when the JSON is formatted incorrectly
+        try {
+            let content = await dv.io.load(page.file.path);
+            content = content.trim();
+            content = content.slice(3, -3);
+            const json = JSON.parse(content);
+            return json;
+        }
+        catch (error) {
+            return false;
         }
     }
     getWordCount(content) {
@@ -50,18 +54,27 @@ class tifa {
         newNote.wordCount = this.getWordCount(newNote.content);
         return newNote;
     }
+    handleError(error, location) {
+        return `> [!bug] Problem at ${location}\n${error}`;
+    }
     // * CALLOUTS
-    async renderCallouts(dv) {
+    async renderCallouts(dv, callouts) {
         try {
-            const note = await this.addImplicitProps(dv.current(), dv);
-            const readTime = await this.getReadTime(note, dv);
-            if (readTime) {
-                dv.span(readTime);
+            if (callouts) {
+                // TODO: Handle specified callouts
+                dv.span(callouts);
             }
-            await this.getNoteCallouts(note, dv);
+            else {
+                const note = await this.addImplicitProps(dv.current(), dv);
+                const readTime = await this.getReadTime(note, dv);
+                if (readTime) {
+                    dv.span(readTime);
+                }
+                await this.getNoteCallouts(note, dv);
+            }
         }
         catch (error) {
-            dv.span(`> [!bug] Problem with renderCallouts()\n${error}`);
+            dv.span(this.handleError(error, 'renderCallouts()'));
         }
     }
     async getNoteCallouts(note, dv) {
@@ -158,6 +171,23 @@ class tifa {
     }
     // * TASKS
     // TODO: handle queries and display of tasks
+    renderTasks(dv, option) {
+        // Get tasks from journal
+        const tasks = dv.pages().file.tasks;
+        // Add task due today
+        const dueToday = tasks.filter(task => task.due && task.due.day === dv.parse(dv.current().file.name).day && task.due.month === dv.parse(dv.current().file.name).month && task.due.year === dv.parse(dv.current().file.name).year);
+        if (dueToday) {
+            dv.header(3, 'Due Today');
+            dv.taskList(dueToday, false);
+        }
+        // Past due highlighted in red
+        const pastDue = tasks.filter(task => task.due && task.due < dv.parse(dv.current().file.name) && !task.completed);
+        if (pastDue) {
+            dv.header(3, 'Past Due');
+            dv.taskList(pastDue);
+        }
+        // If all tasks complete, add backlog
+    }
     // * BIBLIOGRAPHY
     // TODO: handle creating bibliography for topic based on references to book notes
     renderBibliography(dv) {
@@ -167,7 +197,7 @@ class tifa {
             dv.paragraph(bibliography);
         }
         catch (error) {
-            dv.paragraph(`> [!bug] Problem with renderBibliography()\n${error}`);
+            dv.span(this.handleError(error, 'renderBibliography()'));
         }
     }
     getBookReferences(noteData, dv) {
@@ -220,7 +250,7 @@ class tifa {
             return `>[!info] READ TIME: ${hours} ${hourText} ${mins} ${minText}`;
         }
         catch (error) {
-            dv.span(`> [!bug] Problem with getReadTime()\n${error}`);
+            dv.span(this.handleError(error, 'getReadTime()'));
         }
     }
 }
