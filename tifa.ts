@@ -179,27 +179,34 @@ class tifa {
 
   // * TASKS
   // TODO: handle queries and display of tasks
-  renderTasks(dv, option) {
-    // Get tasks from journal
-    const tasks = dv.pages().file.tasks
+  async renderTasks(dv, option) {
+    const tasks = dv.pages('"Journal"').file.tasks
+    const headingLevel = 3
+
     // Add task due today
     const dueToday = tasks.filter(task => task.due && task.due.day === dv.parse(dv.current().file.name).day && task.due.month === dv.parse(dv.current().file.name).month && task.due.year === dv.parse(dv.current().file.name).year)
-
-    if (dueToday) {
-      dv.header(3, 'Due Today')
-      dv.taskList(dueToday, false)
-    }
+    this.createTaskList(dv, dueToday, 'Due Today', headingLevel)
 
     // Past due highlighted in red
     const pastDue = tasks.filter(task => task.due && task.due < dv.parse(dv.current().file.name) && !task.completed)
-
-    if (pastDue) {
-      dv.header(3, 'Past Due')
-      dv.taskList(pastDue)
-    }
+    this.createTaskList(dv, pastDue, 'Past Due', headingLevel)
+    
+    // No due date warning
+    const noDueDate = tasks.filter(task => !task.due && !task.completed)
+    this.createTaskList(dv, noDueDate, 'NO DUE DATE', headingLevel)
     
     // If all tasks complete, add backlog
-    
+    if (dueToday.length === 2 && pastDue.length === 3) {
+      const futureTasks = tasks.filter(task => task.due && task.due > dv.parse(dv.current().file.name) && !task.completed)
+      dv.span('```ad-note\n' + '' + '\n```')
+    }
+  }
+
+  createTaskList(dv, tasks, heading, headingLevel) {
+    if (tasks.length > 0) {
+      dv.header(headingLevel, heading)
+      dv.taskList(tasks, false)
+    }
   }
 
   // * BIBLIOGRAPHY
