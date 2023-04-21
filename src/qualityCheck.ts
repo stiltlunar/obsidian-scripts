@@ -35,27 +35,22 @@ class qualityCheck {
 
   async getSchema(note, dv) {
     try {
-      const noteCallout = dv.page(note.type + "@callouts")
-      let schema = await dv.io.load(noteCallout.file.path)
-      schema = schema.trim()
-      schema = schema.slice(3, -3)      
-      const json = JSON.parse(schema)
-      
-      return json
+      const schema = dv.page(note.type + "@callouts")
+      return schema.file.frontmatter
     } catch(error) {
       return false
     }
   }
 
   async getErrors(note, schema, dv) {
-    const errors = [{message: 'Needs more content'}, {message: 'So empty!'}]
+    const errors = []
     const qualitySchema = schema.qualityCheck
     if (!qualitySchema) {
       dv.span(`> [!info] Missing [[Note Quality Checking|Quality Checkers]] | [[${note.type}@callouts|Add Some]]`)
       return false
     }
     if (qualitySchema.frontMatter) {
-
+      
     }
     if (qualitySchema.explicitMeta) {
 
