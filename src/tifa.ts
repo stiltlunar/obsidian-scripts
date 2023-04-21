@@ -45,15 +45,9 @@ class tifa {
     }
   }
 
-  getWordCount(content) {
-    const count = content.split(' ').length
-    return count
-  }
-
   async addImplicitProps(note, dv) {
     const newNote = note
     newNote.content = await dv.io.load(newNote.file.path)
-    newNote.wordCount = this.getWordCount(newNote.content)
     return newNote
   }
 
@@ -69,10 +63,6 @@ class tifa {
         dv.span(callouts)
       } else {
         const note = await this.addImplicitProps(dv.current(), dv)
-        const readTime = await this.getReadTime(note, dv)
-        if (readTime) {
-          dv.span(readTime)
-        }
         await this.getNoteCallouts(note, dv)
       }
       
@@ -209,74 +199,4 @@ class tifa {
     }
   }
 
-  // * BIBLIOGRAPHY
-  // TODO: handle creating bibliography for topic based on references to book notes
-  renderBibliography(dv) {
-    try {
-      const references = this.formatReferences(this.getBookReferences(dv.current(), dv), dv)
-      const bibliography = `## Bibliography\n${references.join('\n')}`
-      dv.paragraph(bibliography)
-    } catch(error) {
-      dv.span(this.handleError(error, 'renderBibliography()'))
-    }
-    
-  }
-
-  getBookReferences(noteData, dv) {
-    const outlinks = noteData.file.outlinks
-    let bookReferences = []
-    outlinks.forEach(link => {      
-      if (dv.page(link).type === '📖') {
-        bookReferences.push(link)
-      }
-    })
-    return bookReferences
-  }
-
-  formatReferences(references, dv) {
-    const formattedReferences = []
-    
-    references.forEach(reference => {
-      const info = dv.page(reference)
-      if(info.format === 'Book') {
-        formattedReferences.push(`${info.author}. *${info.title}*. ${info.publishLocation}: ${info.publisher}, ${info.publishDate}. [[${info.file.name} | ⬈]]`)
-      }
-      if(info.format === 'Journal Article') {
-        formattedReferences.push(`${info.author}. "*${info.title}*." ${info.publisher} ${info.issue} (${info.publishDate}): ${info.pages} [[${info.file.name} | ⬈]]`)
-      }
-    })
-    return formattedReferences
-  }
-
-  // * ESTIMATED READ TIME
-  async getReadTime(note, dv) {
-    try {
-      const content = await dv.io.load(note.file.path)
-      const wordCount = this.getWordCount(content)
-      const readTime = Math.round(wordCount/200)
-      let hourText: string = ''
-      let minText: string = ''
-      let hours: string|number = ''
-      let mins: string|number = ''
-  
-      // set mins and hours
-      if (readTime > 60) {
-        hours = Math.floor(readTime / 60)
-        mins = readTime % 60
-      } else {
-        mins = readTime
-      }
-  
-      // set hour text
-      if (hours) {
-        hours === 1 ? hourText = 'hr' : hourText = 'hrs'
-      }
-      // set min text
-      mins === 1 ? minText = 'min' : minText = 'mins'
-  
-      return `>[!info] READ TIME: ${hours} ${hourText} ${mins} ${minText}`
-    } catch (error) {
-      dv.span(this.handleError(error, 'getReadTime()'))
-    }
-  } 
 }
