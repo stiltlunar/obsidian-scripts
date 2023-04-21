@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/stiltlunar/obsidian-scripts#readme",
   "devDependencies": {
+    "@types/node": "^18.15.13",
     "typescript": "^4.8.4"
   }
 }

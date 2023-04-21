@@ -4,7 +4,8 @@
     "target": "ESNEXT",
     "noImplicitAny": false,
     "removeComments": false,
+    "outDir": "dist"
   },
-  "include": ["**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts"],
 }
