@@ -1,7 +1,7 @@
 class qualityCheck {
   
-  renderQualityCheck() {
-    
+  async renderQualityCheck(dv) {
+
   }
 
 }
