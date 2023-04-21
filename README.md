@@ -4,6 +4,8 @@
 
 Using the CustomJS plugin, this folder contains JavaScript files that handle custom code. Change Obsidian display preferences to show all file types.
 
+Make sure to set customJS folder to /dist directory
+
 ## Features
 
 ### Render Callouts
