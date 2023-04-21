@@ -5,4 +5,6 @@ class standardCallouts {
     dv.span("```dataviewjs\nconst {readTime} = customJS\nreadTime.render(dv)\n```")
   }
 
+  // handle missing schema
+
 }

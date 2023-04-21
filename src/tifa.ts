@@ -1,8 +1,5 @@
 class tifa { 
-  // !!! ALL METHODS WITH 'render' PREFIX ARE CALLED FROM OBSIDIAN              !!!
-  // !!! RENAMING A 'render' METHOD WILL AFFECT ALL PAGES CALLING THE METHOD    !!!
-  // !!! CHANGING A 'render' VARIABLES WILL AFFECT ALL PAGES CALLING THE METHOD !!!
-  // * GLOBAL
+  // TODO
   createCallout(type, message, content?: string | string[]) {
     try {
       // TODO: accomodate ordered and unordered lists
@@ -28,6 +25,7 @@ class tifa {
     }
   }
   
+  // *DONE
   async getJSON(page, dv) {
     // TODO: Add better error handling
     // TODO: I need to know when the function fails
@@ -45,17 +43,19 @@ class tifa {
     }
   }
 
+  // Ignore
   async addImplicitProps(note, dv) {
     const newNote = note
     newNote.content = await dv.io.load(newNote.file.path)
     return newNote
   }
 
+  // Ignore
   handleError(error: Error, location: string) {
     return `> [!bug] Problem at ${location}\n${error}`
   }
 
-  // * CALLOUTS
+  // Ignore
   async renderCallouts(dv, callouts?: string | string[]) {
     try {
       if (callouts) {
@@ -71,6 +71,7 @@ class tifa {
     }
   }
 
+  // !WIP
   async getNoteCallouts(note, dv) {
     try {
 
@@ -131,6 +132,7 @@ class tifa {
     }
   }
 
+  // !WIP
   compareRule(note, rule) {
     try {
       // TODO: Handle more types than numbers
@@ -164,38 +166,6 @@ class tifa {
       }
     } catch(error) {
       return `> [!bug] Problem with compareRule()\n${error}`
-    }
-  }
-
-  // * TASKS
-  // TODO: handle queries and display of tasks
-  async renderTasks(dv, option) {
-    const tasks = dv.pages('"Journal"').file.tasks
-    const headingLevel = 3
-
-    // Add task due today
-    const dueToday = tasks.filter(task => task.due && task.due.day === dv.parse(dv.current().file.name).day && task.due.month === dv.parse(dv.current().file.name).month && task.due.year === dv.parse(dv.current().file.name).year)
-    this.createTaskList(dv, dueToday, 'Due Today', headingLevel)
-
-    // Past due highlighted in red
-    const pastDue = tasks.filter(task => task.due && task.due < dv.parse(dv.current().file.name) && !task.completed)
-    this.createTaskList(dv, pastDue, 'Past Due', headingLevel)
-    
-    // No due date warning
-    const noDueDate = tasks.filter(task => !task.due && !task.completed)
-    this.createTaskList(dv, noDueDate, 'NO DUE DATE', headingLevel)
-    
-    // If all tasks complete, add backlog
-    if (dueToday.length === 2 && pastDue.length === 3) {
-      const futureTasks = tasks.filter(task => task.due && task.due > dv.parse(dv.current().file.name) && !task.completed)
-      dv.span('```ad-note\n' + '' + '\n```')
-    }
-  }
-
-  createTaskList(dv, tasks, heading, headingLevel) {
-    if (tasks.length > 0) {
-      dv.header(headingLevel, heading)
-      dv.taskList(tasks, false)
     }
   }
 
