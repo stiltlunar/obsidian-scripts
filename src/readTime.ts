@@ -3,7 +3,6 @@ class readTime {
   async render(dv) {
     try {
       const note = dv.current()
-      // need the content to be able to get word count
       const content = await dv.io.load(note.file.path)
       const wordCount = content.split(' ').length
       const readTime = await this.getReadTime(wordCount, dv)

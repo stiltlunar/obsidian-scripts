@@ -1,6 +1,6 @@
 class qualityCheck {
   
-  async renderQualityCheck(dv) {
+  async render(dv) {
 
   }
 
