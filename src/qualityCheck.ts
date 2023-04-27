@@ -20,9 +20,10 @@ class qualityCheck {
     } else if (errors.length > 0) {
       let errorMessages = []
       errors.forEach(error => {
-        errorMessages.push(`> > [!warning] ${error.message}\n>\n`)
+        errorMessages.push(`> [!warning] ${error.message}\n>\n`)
       })
-      dv.span(`> [!warning] This note has [[Note Quality|quality propblems]]!\n${errorMessages.join('')}`)
+      
+      dv.span(`${errorMessages.join('\n')}`)
     } else {
       dv.span('> [!success] This is a quality note')
     }
@@ -45,21 +46,44 @@ class qualityCheck {
   async getErrors(note, schema, dv) {
     const errors = []
     const qualitySchema = schema.qualityCheck
+    let done = false
+    
     if (!qualitySchema) {
       dv.span(`> [!info] Missing [[Note Quality Checking|Quality Checkers]] | [[${note.type}@callouts|Add Some]]`)
       return false
     }
-    if (qualitySchema.frontMatter) {
-      
+    
+    for (let metaLocation in qualitySchema) {
+      for (let metaKey in qualitySchema[metaLocation]) {
+        const rules = qualitySchema[metaLocation][metaKey]
+        await rules.forEach(async (rule) => {
+          const passed = await this.checkRule(rule, note, metaKey)
+          if (!passed) {
+            errors.push(rule.error)
+          }
+          if (rule.done) {
+            done = true
+            return errors
+          }
+        })
+      }
     }
-    if (qualitySchema.explicitMeta) {
-
-    }
-    if (qualitySchema.implicitMeta) {
-
-    }
-
+    console.log(done);
+    
+    console.log(errors);
     return errors
+  }
+
+  async checkRule(rule, note, property) {    
+    let check = true
+    
+    if ((rule.condition === 'equals') && (rule.value !== note[property])) {
+      check = false
+    } else if ((rule.condition === 'required') && !note[property]) {
+      check = false
+    }
+    
+    return check
   }
 
 }
