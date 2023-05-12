@@ -1,6 +1,6 @@
 class callouts {
 
-  async render(dv) {
+  async render(dv: any) {
     const note = dv.current();
     if (!note.type) {
       dv.span("> [!missing] Missing Note Type");
@@ -22,7 +22,7 @@ class callouts {
 
   }
 
-  async getSchema(note, dv) {
+  async getSchema(note: any, dv: any) {
     try {
       const schema = dv.page(note.type + "@callouts");
       return schema.file.frontmatter;

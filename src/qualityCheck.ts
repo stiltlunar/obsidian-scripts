@@ -1,5 +1,5 @@
 class qualityCheck {
-  async render(dv) {
+  async render(dv: any) {
     const note = dv.current();
     if (!note.type) {
       dv.span("> [!missing] Missing Note Type");
@@ -19,8 +19,8 @@ class qualityCheck {
     if (!errors) {
       return;
     } else if (errors.length > 0) {
-      let errorMessages = [];
-      errors.forEach((error) => {
+      let errorMessages: any = [];
+      errors.forEach((error: any) => {
         const message = error.content
           ? `> [!warning] ${error.message}\n>${error.content}\n`
           : `> [!warning] ${error.message}\n`;
@@ -35,7 +35,7 @@ class qualityCheck {
 
   async addImplicitMeta() {}
 
-  async getSchema(note, dv) {
+  async getSchema(note: any, dv: any) {
     try {
       const schema = dv.page(note.type + "@callouts");
       return schema.file.frontmatter;
@@ -44,8 +44,8 @@ class qualityCheck {
     }
   }
 
-  async getErrors(note, schema, dv) {
-    const errors = [];
+  async getErrors(note: any, schema: any, dv: any) {
+    const errors: any = [];
     const qualitySchema = schema.qualityCheck;
     let done = false;
 
@@ -56,37 +56,31 @@ class qualityCheck {
       return false;
     }
 
+    /* 
+    dataview has different file attributes in different locations
+    meta location is dependent on file or frontmatter properties
+    */
     for (let metaLocation in qualitySchema) {
-      if (metaLocation === 'frontmatter') {
-        for (let metaKey in qualitySchema[metaLocation]) {
-          const rules = qualitySchema[metaLocation][metaKey];
-          await rules.forEach(async (rule) => {
-            const passed = await this.checkRule(rule, note.file.frontmatter, metaKey);
-            if (!passed && !done) {
-              errors.push(rule.error);
-              rule.done ? (done = true) : (done = false);
-            }
-          });
+      for (let metaKey in qualitySchema[metaLocation]) {
+        let noteLocation = note.file
+        if (metaLocation === 'frontmatter') {
+          noteLocation = note.file.frontmatter
         }
-      }
-      if (metaLocation === 'file') {
-        for (let metaKey in qualitySchema[metaLocation]) {
-          const rules = qualitySchema[metaLocation][metaKey];
-          await rules.forEach(async (rule) => {
-            const passed = await this.checkRule(rule, note.file, metaKey);
-            if (!passed && !done) {
-              errors.push(rule.error);
-              rule.done ? (done = true) : (done = false);
-            }
-          });
-        }
+        const rules = qualitySchema[metaLocation][metaKey];
+        await rules.forEach(async (rule: any) => {
+          const passed = await this.checkRule(rule, noteLocation, metaKey);
+          if (!passed && !done) {
+            errors.push(rule.error);
+            rule.done ? (done = true) : (done = false);
+          }
+        });
       }
     }
 
     return errors;
   }
 
-  async checkRule(rule, note, property) {
+  async checkRule(rule: any, note: any, property: any) {
     let check = true;
 
     let correctedProperty
@@ -121,7 +115,11 @@ class qualityCheck {
         break;
       case "containsNot":
         if (!note[property].includes(rule.value)) {check = false};
-        break;  
+        break;
+      case "regex":
+        let expression = new RegExp(rule.value)
+        if (expression.test(note[property]) === false) {check = false};
+        break;
     }
     
     return check;

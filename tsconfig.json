@@ -2,9 +2,12 @@
   "compilerOptions": {
     "module": "CommonJS",
     "target": "ESNEXT",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "removeComments": false,
-    "outDir": "dist"
+    "outDir": "dist",
+    // ingnoreDeprecations and noImplicitUseStrict are required because of CustomJS's use of top level classes
+    "ignoreDeprecations": "5.0",
+    "noImplicitUseStrict": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"],
